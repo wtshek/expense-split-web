@@ -49,6 +49,30 @@ jobs:
         aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete --cache-control max-age=31536000,public
         aws s3 cp dist/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html --cache-control max-age=0,no-cache,no-store,must-revalidate
 
+    - name: Configure CloudFront for SPA
+      run: |
+        aws cloudfront get-distribution-config --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --query 'DistributionConfig' > dist-config.json
+        
+        # Update the distribution config to add custom error pages
+        cat dist-config.json | jq '.CustomErrorResponses.Items = [
+          {
+            "ErrorCode": 403,
+            "ResponsePagePath": "/index.html",
+            "ResponseCode": "200"
+          },
+          {
+            "ErrorCode": 404,
+            "ResponsePagePath": "/index.html", 
+            "ResponseCode": "200"
+          }
+        ] | .CustomErrorResponses.Quantity = 2' > updated-dist-config.json
+        
+        # Get the current ETag
+        ETAG=$(aws cloudfront get-distribution-config --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --query 'ETag' --output text)
+        
+        # Update the distribution
+        aws cloudfront update-distribution --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --distribution-config file://updated-dist-config.json --if-match $ETAG
+
     - name: Invalidate CloudFront cache
       run: |
         aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
