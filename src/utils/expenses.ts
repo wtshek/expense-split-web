@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase'
-import type { Expense, ExpenseWithDetails, CreateExpenseData, UpdateExpenseData } from '../types/database'
+import type { Expense, ExpenseWithDetails, CreateExpenseData, UpdateExpenseData, SplitDetails } from '../types/database'
 
 export const expensesUtils = {
   async getUserExpenses(limit?: number): Promise<ExpenseWithDetails[]> {
@@ -311,7 +311,7 @@ export const expensesUtils = {
     return expense.amount / expense.involved_profile_ids.length
   },
 
-  createEqualSplit(amount: number, profileIds: string[]): any {
+  createEqualSplit(amount: number, profileIds: string[]): SplitDetails {
     const splitAmount = amount / profileIds.length
     
     return {
@@ -323,7 +323,7 @@ export const expensesUtils = {
     }
   },
 
-  createCustomSplit(amounts: Record<string, number>): any {
+  createCustomSplit(amounts: Record<string, number>): SplitDetails {
     return {
       type: 'custom',
       participants: Object.entries(amounts).map(([profile_id, amount]) => ({
@@ -333,7 +333,7 @@ export const expensesUtils = {
     }
   },
 
-  createPercentageSplit(totalAmount: number, percentages: Record<string, number>): any {
+  createPercentageSplit(totalAmount: number, percentages: Record<string, number>): SplitDetails {
     return {
       type: 'percentage',
       participants: Object.entries(percentages).map(([profile_id, percentage]) => ({

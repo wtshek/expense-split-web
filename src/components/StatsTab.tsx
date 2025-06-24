@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import type { Category, ExpenseWithDetails } from "../types/database";
+import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "../hooks/useAuth";
+import type { Category, ExpenseWithDetails, SplitDetails, LegacySplitDetails, SplitParticipant } from "../types/database";
 import { categoriesUtils, expensesUtils, groupsUtils } from "../utils";
 
 interface CategoryStats {
@@ -47,13 +47,7 @@ export default function StatsTab() {
   const [totalSpent, setTotalSpent] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      loadStats();
-    }
-  }, [user, selectedMonth]);
-
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -87,9 +81,15 @@ export default function StatsTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth, calculateCategoryStats, calculateDebts, calculatePaymentSummary]);
 
-  const calculateCategoryStats = async (expenses: ExpenseWithDetails[]) => {
+  useEffect(() => {
+    if (user) {
+      loadStats();
+    }
+  }, [user, loadStats]);
+
+  const calculateCategoryStats = useCallback(async (expenses: ExpenseWithDetails[]) => {
     const categories = await categoriesUtils.getAllCategories();
     const categoryMap = new Map<string, CategoryStats>();
 
@@ -125,9 +125,9 @@ export default function StatsTab() {
       .sort((a, b) => b.amount - a.amount);
 
     setCategoryStats(stats);
-  };
+  }, []);
 
-  const calculateDebts = async (expenses: ExpenseWithDetails[]) => {
+  const calculateDebts = useCallback(async (expenses: ExpenseWithDetails[]) => {
     if (!user) return;
 
     const debtMap = new Map<
@@ -139,18 +139,15 @@ export default function StatsTab() {
     for (const expense of expenses) {
       if (!expense.is_group_expense || !expense.split_details) continue;
 
-      const splitDetails = expense.split_details as any;
+      const splitDetails = expense.split_details as SplitDetails | LegacySplitDetails;
 
       // Handle new format: {type: "equal", participants: [{amount: 100, profile_id: "..."}]}
-      if (
-        splitDetails.participants &&
-        Array.isArray(splitDetails.participants)
-      ) {
+      if ('participants' in splitDetails && Array.isArray(splitDetails.participants)) {
         const paidByCurrentUser = expense.paid_by_profile_id === user.id;
 
         // Find current user's split amount
         const currentUserParticipant = splitDetails.participants.find(
-          (p: any) => p.profile_id === user.id
+          (p: SplitParticipant) => p.profile_id === user.id
         );
         const currentUserSplit = currentUserParticipant?.amount || 0;
 
@@ -196,9 +193,9 @@ export default function StatsTab() {
       } else {
         // Handle old format: {profile_id: amount, profile_id: amount}
         const paidByCurrentUser = expense.paid_by_profile_id === user.id;
-        const currentUserSplit = splitDetails[user.id] || 0;
+        const currentUserSplit = (splitDetails as LegacySplitDetails)[user.id] || 0;
 
-        Object.entries(splitDetails).forEach(
+        Object.entries(splitDetails as LegacySplitDetails).forEach(
           async ([profileId, splitAmount]) => {
             if (profileId === user.id) return;
 
@@ -250,9 +247,9 @@ export default function StatsTab() {
       .sort((a, b) => b.amount - a.amount);
 
     setDebts(debtsArray);
-  };
+  }, [user]);
 
-  const calculatePaymentSummary = async (expenses: ExpenseWithDetails[]) => {
+  const calculatePaymentSummary = useCallback(async (expenses: ExpenseWithDetails[]) => {
     if (!user) return;
 
     const paymentMap = new Map<string, PaymentInfo>();
@@ -337,7 +334,7 @@ export default function StatsTab() {
       myPayments,
       othersPayments,
     });
-  };
+  }, [user]);
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat("en-US", {

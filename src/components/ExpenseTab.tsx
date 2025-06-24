@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "../hooks/useAuth";
 import { expensesUtils } from "../utils";
 import ExpenseList from "./ExpenseList";
 import { Input } from "./ui/Input";
@@ -10,18 +10,9 @@ export default function ExpenseTab() {
     new Date().toISOString().slice(0, 7)
   ); // YYYY-MM format
   const [totalSpent, setTotalSpent] = useState(0);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      loadUserStats();
-    }
-  }, [user, selectedMonth]);
-
-  const loadUserStats = async () => {
+  const loadUserStats = useCallback(async () => {
     try {
-      setLoading(true);
-
       // Get month range
       const startDate = `${selectedMonth}-01`;
       const endDate = new Date(selectedMonth + "-01");
@@ -39,10 +30,14 @@ export default function ExpenseTab() {
       setTotalSpent(total);
     } catch (err) {
       console.error("Error loading user stats:", err);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    if (user) {
+      loadUserStats();
+    }
+  }, [user, loadUserStats]);
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat("en-US", {

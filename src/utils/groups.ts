@@ -5,7 +5,12 @@ import type {
   GroupMember,
   GroupWithMembers,
   UpdateGroupData,
+  Profile,
 } from "../types/database";
+
+interface GroupMemberWithProfile extends GroupMember {
+  profiles: Profile;
+}
 
 export const groupsUtils = {
   async getUserGroups(): Promise<GroupWithMembers[]> {
@@ -76,9 +81,9 @@ export const groupsUtils = {
     return {
       ...data,
       owner: data.profiles,
-      members: data.group_members.map((member: any) => ({
+      members: data.group_members.map((member: GroupMemberWithProfile) => ({
         ...member,
-        profile: member.profiles,
+        profiles: member.profiles,
       })),
     };
   },

@@ -4,6 +4,18 @@ export interface Profile {
   created_at: string;
 }
 
+export interface SplitParticipant {
+  profile_id: string;
+  amount: number;
+}
+
+export interface SplitDetails {
+  type: 'equal' | 'percentage' | 'custom';
+  participants: SplitParticipant[];
+}
+
+export type LegacySplitDetails = Record<string, number>;
+
 export interface Category {
   id: string;
   name: string;
@@ -34,7 +46,7 @@ export interface Expense {
   group_id?: string;
   paid_by_profile_id?: string;
   involved_profile_ids: string[];
-  split_details?: Record<string, any>;
+  split_details?: SplitDetails | LegacySplitDetails;
   notes?: string;
   created_at: string;
 }
@@ -60,7 +72,7 @@ export interface CreateExpenseData {
   group_id?: string;
   paid_by_profile_id: string;
   involved_profile_ids: string[];
-  split_details?: Record<string, any>;
+  split_details?: SplitDetails | LegacySplitDetails;
   notes?: string;
 }
 

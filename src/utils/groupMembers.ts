@@ -1,5 +1,10 @@
 import { supabase } from "../lib/supabase";
-import type { GroupMember } from "../types/database";
+import type { GroupMember, Profile, Group } from "../types/database";
+
+interface GroupMemberWithProfile extends GroupMember {
+  profiles?: Profile;
+}
+
 
 export const groupMembersUtils = {
   async addMemberToGroup(
@@ -41,7 +46,7 @@ export const groupMembersUtils = {
 
   async getGroupMembers(
     groupId: string
-  ): Promise<(GroupMember & { profiles?: any })[]> {
+  ): Promise<GroupMemberWithProfile[]> {
     const { data, error } = await supabase
       .from("group_members")
       .select(
@@ -69,7 +74,7 @@ export const groupMembersUtils = {
 
   async getUserGroups(
     profileId?: string
-  ): Promise<(GroupMember & { group?: any })[]> {
+  ): Promise<(GroupMember & { group?: Group & { owner?: Profile } })[]> {
     const userId = profileId || (await supabase.auth.getUser()).data.user?.id;
     if (!userId) return [];
 
@@ -152,7 +157,7 @@ export const groupMembersUtils = {
     return data.joined_at;
   },
 
-  async getGroupsUserCanJoin(searchQuery?: string): Promise<any[]> {
+  async getGroupsUserCanJoin(searchQuery?: string): Promise<(Group & { owner?: Profile })[]> {
     const {
       data: { user },
     } = await supabase.auth.getUser();

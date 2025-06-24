@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { ExpenseWithDetails } from "../types/database";
 import { categoriesUtils, expensesUtils } from "../utils";
 
@@ -82,11 +82,7 @@ export default function ExpenseList({ selectedMonth }: ExpenseListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadExpenses();
-  }, [selectedMonth]);
-
-  const loadExpenses = async () => {
+  const loadExpenses = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -112,7 +108,11 @@ export default function ExpenseList({ selectedMonth }: ExpenseListProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    loadExpenses();
+  }, [loadExpenses]);
 
   if (loading) {
     return (

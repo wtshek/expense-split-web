@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "../hooks/useAuth";
 import type {
   Category,
   GroupMember,
   GroupWithMembers,
   Profile,
+  SplitParticipant,
 } from "../types/database";
 import { categoriesUtils, expensesUtils, groupsUtils } from "../utils";
 import { Button } from "./ui/Button";
@@ -44,35 +45,7 @@ export default function AddExpenseTab() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (selectedGroupId) {
-      loadGroupMembers();
-    } else {
-      setGroupMembers([]);
-      setPercentageSplits({});
-    }
-  }, [selectedGroupId]);
-
-  useEffect(() => {
-    if (groupMembers.length > 0 && splitType === "percentage") {
-      initializeEqualPercentages();
-    }
-  }, [groupMembers, splitType]);
-
-  const loadData = async () => {
-    try {
-      const [categoriesData, groupsData] = await Promise.all([
-        categoriesUtils.getAllCategories(),
-        groupsUtils.getUserGroups(),
-      ]);
-      setCategories(categoriesData);
-      setUserGroups(groupsData);
-    } catch (err) {
-      console.error("Error loading data:", err);
-    }
-  };
-
-  const loadGroupMembers = async () => {
+  const loadGroupMembers = useCallback(async () => {
     if (!selectedGroupId) return;
 
     try {
@@ -91,9 +64,9 @@ export default function AddExpenseTab() {
     } catch (err) {
       console.error("Error loading group members:", err);
     }
-  };
+  }, [selectedGroupId, user]);
 
-  const initializeEqualPercentages = () => {
+  const initializeEqualPercentages = useCallback(() => {
     if (groupMembers.length === 0) return;
 
     const equalPercentage = Math.floor(10000 / groupMembers.length) / 100; // Precise to 2 decimal places
@@ -114,7 +87,36 @@ export default function AddExpenseTab() {
     });
 
     setPercentageSplits(splits);
+  }, [groupMembers]);
+
+  useEffect(() => {
+    if (selectedGroupId) {
+      loadGroupMembers();
+    } else {
+      setGroupMembers([]);
+      setPercentageSplits({});
+    }
+  }, [selectedGroupId, loadGroupMembers]);
+
+  useEffect(() => {
+    if (groupMembers.length > 0 && splitType === "percentage") {
+      initializeEqualPercentages();
+    }
+  }, [groupMembers, splitType, initializeEqualPercentages]);
+
+  const loadData = async () => {
+    try {
+      const [categoriesData, groupsData] = await Promise.all([
+        categoriesUtils.getAllCategories(),
+        groupsUtils.getUserGroups(),
+      ]);
+      setCategories(categoriesData);
+      setUserGroups(groupsData);
+    } catch (err) {
+      console.error("Error loading data:", err);
+    }
   };
+
 
   const handlePercentageChange = (profileId: string, percentage: number) => {
     setPercentageSplits((prev) => ({
@@ -151,7 +153,7 @@ export default function AddExpenseTab() {
 
     const owedAmounts: Record<string, number> = {};
 
-    splitDetails.participants.forEach((participant: any) => {
+    splitDetails.participants.forEach((participant: SplitParticipant) => {
       if (participant.profile_id !== paidByProfileId) {
         owedAmounts[participant.profile_id] = participant.amount;
       }
@@ -495,7 +497,7 @@ export default function AddExpenseTab() {
 
                           return groupMembers.map((member) => {
                             const participant = splitDetails.participants.find(
-                              (p: any) => p.profile_id === member.profile_id
+                              (p: SplitParticipant) => p.profile_id === member.profile_id
                             );
                             const memberAmount = participant?.amount || 0;
                             const owedAmount = owedAmounts[member.profile_id] || 0;
