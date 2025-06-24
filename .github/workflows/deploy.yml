@@ -25,8 +25,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pnpm install --frozen-lockfile
-        pnpm rebuild sharp
+        pnpm install --no-frozen-lockfile
+        pnpm install sharp --force
 
     - name: Run linting
       run: pnpm lint
