@@ -80,7 +80,7 @@ export const profilesUtils = {
       return []
     }
 
-    return data.map(member => member.profiles).filter(Boolean) as Profile[]
+    return data.map(member => member.profiles).filter(Boolean) as unknown as Profile[]
   },
 
   async searchProfiles(query: string): Promise<Profile[]> {

@@ -47,48 +47,6 @@ export default function StatsTab() {
   const [totalSpent, setTotalSpent] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const loadStats = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      // Get month range
-      const startDate = `${selectedMonth}-01`;
-      const endDate = new Date(selectedMonth + "-01");
-      endDate.setMonth(endDate.getMonth() + 1);
-      endDate.setDate(0); // Last day of month
-      const endDateStr = endDate.toISOString().split("T")[0];
-
-      // Fetch expenses for the month
-      const expenses = await expensesUtils.getExpensesByDateRange(
-        startDate,
-        endDateStr
-      );
-
-      // Calculate category stats
-      await calculateCategoryStats(expenses);
-
-      // Calculate debts
-      await calculateDebts(expenses);
-
-      // Calculate payment summary
-      await calculatePaymentSummary(expenses);
-
-      // Calculate total spent
-      const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-      setTotalSpent(total);
-    } catch (err) {
-      console.error("Error loading stats:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedMonth, calculateCategoryStats, calculateDebts, calculatePaymentSummary]);
-
-  useEffect(() => {
-    if (user) {
-      loadStats();
-    }
-  }, [user, loadStats]);
-
   const calculateCategoryStats = useCallback(async (expenses: ExpenseWithDetails[]) => {
     const categories = await categoriesUtils.getAllCategories();
     const categoryMap = new Map<string, CategoryStats>();
@@ -335,6 +293,48 @@ export default function StatsTab() {
       othersPayments,
     });
   }, [user]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Get month range
+      const startDate = `${selectedMonth}-01`;
+      const endDate = new Date(selectedMonth + "-01");
+      endDate.setMonth(endDate.getMonth() + 1);
+      endDate.setDate(0); // Last day of month
+      const endDateStr = endDate.toISOString().split("T")[0];
+
+      // Fetch expenses for the month
+      const expenses = await expensesUtils.getExpensesByDateRange(
+        startDate,
+        endDateStr
+      );
+
+      // Calculate category stats
+      await calculateCategoryStats(expenses);
+
+      // Calculate debts
+      await calculateDebts(expenses);
+
+      // Calculate payment summary
+      await calculatePaymentSummary(expenses);
+
+      // Calculate total spent
+      const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+      setTotalSpent(total);
+    } catch (err) {
+      console.error("Error loading stats:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedMonth, calculateCategoryStats, calculateDebts, calculatePaymentSummary]);
+
+  useEffect(() => {
+    if (user) {
+      loadStats();
+    }
+  }, [user, loadStats]);
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat("en-US", {

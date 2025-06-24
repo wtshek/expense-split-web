@@ -105,10 +105,10 @@ export const groupMembersUtils = {
 
     return data.map((member) => ({
       ...member,
-      group: {
+      group: member.groups ? {
         ...member.groups,
         owner: member.groups.profiles,
-      },
+      } : undefined,
     }));
   },
 
@@ -178,7 +178,8 @@ export const groupMembersUtils = {
         owner_id,
         profiles!groups_owner_id_fkey (
           id,
-          name
+          name,
+          created_at
         )
       `);
 
@@ -201,7 +202,7 @@ export const groupMembersUtils = {
 
     return data.map((group) => ({
       ...group,
-      owner: group.profiles,
+      owner: Array.isArray(group.profiles) ? group.profiles[0] : group.profiles,
     }));
   },
 
