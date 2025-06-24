@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+:root {
+  --purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --dark-purple: #2D1B69;
+  --purple-primary: #667eea;
+  --purple-secondary: #764ba2;
+  --purple-accent: #8B5CF6;
+}
+
+body {
+  background: var(--purple-gradient);
+  min-height: 100vh;
+  color: #1f2937;
+}

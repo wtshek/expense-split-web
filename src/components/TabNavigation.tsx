@@ -1,27 +1,36 @@
 import { NavLink } from 'react-router-dom';
 
 const tabs = [
-  { path: '/expenses', label: 'Expenses' },
-  { path: '/stats', label: 'Stats' },
-  { path: '/profile', label: 'Profile' }
+  { path: '/home', label: 'Home', icon: '🏠' },
+  { path: '/stats', label: 'Stat', icon: '📊' },
+  { path: '/profile', label: 'Profile', icon: '👤' }
 ];
 
 export default function TabNavigation() {
   return (
-    <div className="flex border-t border-gray-200 bg-white">
+    <div className="flex bg-white bg-opacity-10 backdrop-blur-lg border-t border-white border-opacity-20 mx-4 mb-4 rounded-2xl">
       {tabs.map((tab) => (
         <NavLink
           key={tab.path}
           to={tab.path}
           className={({ isActive }) =>
-            `flex-1 py-4 px-2 text-center text-sm font-medium transition-colors ${
+            `flex-1 py-4 px-2 text-center text-xs font-medium transition-all flex flex-col items-center ${
               isActive
-                ? 'text-blue-600 border-t-2 border-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-gray-800'
+                : 'text-gray-600 hover:text-gray-800'
             }`
           }
         >
-          {tab.label}
+          {({ isActive }) => (
+            <>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 transition-all ${
+                isActive ? 'bg-purple-600' : ''
+              }`}>
+                <span className="text-lg">{tab.icon}</span>
+              </div>
+              <span>{tab.label}</span>
+            </>
+          )}
         </NavLink>
       ))}
     </div>
