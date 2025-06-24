@@ -311,18 +311,35 @@ export const expensesUtils = {
     return expense.amount / expense.involved_profile_ids.length
   },
 
-  createEqualSplit(amount: number, profileIds: string[]): Record<string, number> {
+  createEqualSplit(amount: number, profileIds: string[]): any {
     const splitAmount = amount / profileIds.length
-    const split: Record<string, number> = {}
     
-    profileIds.forEach(id => {
-      split[id] = splitAmount
-    })
-    
-    return split
+    return {
+      type: 'equal',
+      participants: profileIds.map(id => ({
+        profile_id: id,
+        amount: splitAmount
+      }))
+    }
   },
 
-  createCustomSplit(amounts: Record<string, number>): Record<string, number> {
-    return amounts
+  createCustomSplit(amounts: Record<string, number>): any {
+    return {
+      type: 'custom',
+      participants: Object.entries(amounts).map(([profile_id, amount]) => ({
+        profile_id,
+        amount
+      }))
+    }
+  },
+
+  createPercentageSplit(totalAmount: number, percentages: Record<string, number>): any {
+    return {
+      type: 'percentage',
+      participants: Object.entries(percentages).map(([profile_id, percentage]) => ({
+        profile_id,
+        amount: Math.round((totalAmount * percentage / 100) * 100) / 100
+      }))
+    }
   }
 }

@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom';
 
 const tabs = [
-  { path: '/home', label: 'Home', icon: '🏠' },
-  { path: '/stats', label: 'Stat', icon: '📊' },
-  { path: '/profile', label: 'Profile', icon: '👤' }
+  { path: '/expenses', label: 'Expenses', icon: '💰' },
+  { path: '/add-expense', label: 'Add', icon: '+' },
+  { path: '/stats', label: 'Stats', icon: '📊' }
 ];
 
 export default function TabNavigation() {
