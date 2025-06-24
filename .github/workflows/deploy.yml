@@ -14,25 +14,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'pnpm'
+        cache: 'npm'
 
     - name: Install dependencies
       run: |
-        pnpm install --no-frozen-lockfile
-        pnpm install sharp --force
+        npm install
+        npm install sharp --force
 
     - name: Run linting
-      run: pnpm lint
+      run: npm run lint
 
     - name: Build application
-      run: pnpm build
+      run: npm run build
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
