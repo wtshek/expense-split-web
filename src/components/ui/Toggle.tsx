@@ -33,6 +33,9 @@ export const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
                 ? 'bg-purple-600'
                 : 'bg-white bg-opacity-20 border border-white border-opacity-30'
             }`}
+            style={{
+              WebkitTapHighlightColor: 'transparent'
+            }}
             onClick={() => !disabled && onChange(!checked)}
           >
             <div

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { expensesUtils } from "../utils";
 import ExpenseList from "./ExpenseList";
-import { Input } from "./ui/Input";
+import { MonthPicker } from "./ui/MonthPicker";
 
 export default function ExpenseTab() {
   const { user } = useAuth();
@@ -53,6 +53,7 @@ export default function ExpenseTab() {
     });
   };
 
+
   return (
     <div className="p-4 h-full overflow-y-auto">
       <div className="max-w-md mx-auto">
@@ -71,12 +72,13 @@ export default function ExpenseTab() {
           </div>
         </div>
         <div className="flex justify-end mb-6">
-          <Input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-fit bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg px-3 py-1 text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-purple-300"
-          />
+          <div className="w-48">
+            <MonthPicker
+              value={selectedMonth}
+              onChange={setSelectedMonth}
+              className="text-sm"
+            />
+          </div>
         </div>
 
         {/* Total Spent */}

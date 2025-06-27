@@ -6,6 +6,7 @@ import TabNavigation from './components/TabNavigation';
 import ExpenseTab from './components/ExpenseTab';
 import AddExpenseTab from './components/AddExpenseTab';
 import StatsTab from './components/StatsTab';
+import { PWAUpdatePrompt } from './components/PWAUpdatePrompt';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -33,6 +34,7 @@ function AppContent() {
         </Routes>
       </div>
       <TabNavigation />
+      <PWAUpdatePrompt />
     </div>
   );
 }
