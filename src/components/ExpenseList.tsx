@@ -1,93 +1,30 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { ExpenseWithDetails } from "../types/database";
-import { categoriesUtils, expensesUtils } from "../utils";
-
-interface ExpenseItemProps {
-  expense: ExpenseWithDetails;
-}
-
-function ExpenseItem({ expense }: ExpenseItemProps) {
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "CAD",
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const getCategoryDisplay = () => {
-    if (expense.category) {
-      return {
-        icon:
-          expense.category.icon ||
-          categoriesUtils.getCategoryIcon(expense.category.id),
-        name: expense.category.name,
-      };
-    }
-    return {
-      icon: "📦",
-      name: "Other",
-    };
-  };
-
-  const category = getCategoryDisplay();
-
-  return (
-    <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-4 border border-white border-opacity-20">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
-            <span className="text-lg">{category.icon}</span>
-          </div>
-          <div>
-            <p className="text-gray-800 font-medium">{expense.description}</p>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <span>{category.name}</span>
-              {expense.is_group_expense && expense.group && (
-                <span>{expense.group.name}</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-gray-800 font-semibold">
-            {formatAmount(expense.amount)}
-          </p>
-          <p className="text-gray-600 text-xs">
-            <div>{formatDate(expense.expense_date)}</div>
-            <div>
-              {expense.paid_by && (
-                <span>Paid by {expense.paid_by.name || "Unknown"}</span>
-              )}
-            </div>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { expensesUtils } from "../utils";
+import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import SwipeableExpenseItem from "./SwipeableExpenseItem";
 
 interface ExpenseListProps {
   selectedMonth?: string;
 }
 
 export default function ExpenseList({ selectedMonth }: ExpenseListProps) {
+  const navigate = useNavigate();
   const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] =
+    useState<ExpenseWithDetails | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadExpenses = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       let data: ExpenseWithDetails[];
-      
+
       if (selectedMonth) {
         // Get month range
         const startDate = `${selectedMonth}-01`;
@@ -95,12 +32,15 @@ export default function ExpenseList({ selectedMonth }: ExpenseListProps) {
         endDate.setMonth(endDate.getMonth() + 1);
         endDate.setDate(0); // Last day of month
         const endDateStr = endDate.toISOString().split("T")[0];
-        
-        data = await expensesUtils.getExpensesByDateRange(startDate, endDateStr);
+
+        data = await expensesUtils.getExpensesByDateRange(
+          startDate,
+          endDateStr
+        );
       } else {
         data = await expensesUtils.getUserExpenses(50); // Get last 50 expenses
       }
-      
+
       setExpenses(data);
     } catch (err) {
       console.error("Error loading expenses:", err);
@@ -113,6 +53,46 @@ export default function ExpenseList({ selectedMonth }: ExpenseListProps) {
   useEffect(() => {
     loadExpenses();
   }, [loadExpenses]);
+
+  const handleEdit = (expense: ExpenseWithDetails) => {
+    navigate(`/add-expense/${expense.id}`);
+  };
+
+  const handleDelete = (expense: ExpenseWithDetails) => {
+    setExpenseToDelete(expense);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!expenseToDelete) return;
+
+    try {
+      setDeleting(true);
+      const success = await expensesUtils.deleteExpense(expenseToDelete.id);
+
+      if (success) {
+        setExpenses((prev) =>
+          prev.filter((exp) => exp.id !== expenseToDelete.id)
+        );
+        setDeleteModalOpen(false);
+        setExpenseToDelete(null);
+      } else {
+        setError("Failed to delete expense. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error deleting expense:", err);
+      setError("Failed to delete expense. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    if (!deleting) {
+      setDeleteModalOpen(false);
+      setExpenseToDelete(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -154,8 +134,21 @@ export default function ExpenseList({ selectedMonth }: ExpenseListProps) {
       </div>
 
       {expenses.map((expense) => (
-        <ExpenseItem key={expense.id} expense={expense} />
+        <SwipeableExpenseItem
+          key={expense.id}
+          expense={expense}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
       ))}
+
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        expense={expenseToDelete}
+        loading={deleting}
+      />
     </div>
   );
 }

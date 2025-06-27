@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import type {
   Category,
@@ -6,14 +7,19 @@ import type {
   GroupWithMembers,
   Profile,
   SplitParticipant,
+  ExpenseWithDetails,
 } from "../types/database";
 import { categoriesUtils, expensesUtils, groupsUtils } from "../utils";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
+import { Select } from "./ui/Select";
 import { Toggle } from "./ui/Toggle";
 
 export default function AddExpenseTab() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
+  const isEditMode = !!id;
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -35,8 +41,11 @@ export default function AddExpenseTab() {
     Record<string, number>
   >({});
   const [loading, setLoading] = useState(false);
+  const [loadingExpense, setLoadingExpense] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [editingExpense, setEditingExpense] =
+    useState<ExpenseWithDetails | null>(null);
 
   useEffect(() => {
     loadData();
@@ -44,6 +53,12 @@ export default function AddExpenseTab() {
       setPaidByProfileId(user.id);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (isEditMode && id) {
+      loadExpenseForEdit(id);
+    }
+  }, [isEditMode, id]);
 
   const loadGroupMembers = useCallback(async () => {
     if (!selectedGroupId) return;
@@ -117,6 +132,62 @@ export default function AddExpenseTab() {
     }
   };
 
+  const loadExpenseForEdit = async (expenseId: string) => {
+    try {
+      setLoadingExpense(true);
+      const expense = await expensesUtils.getExpense(expenseId);
+
+      if (!expense) {
+        setError("Expense not found");
+        return;
+      }
+
+      setEditingExpense(expense);
+
+      // Prefill form with expense data
+      setDescription(expense.description);
+      setAmount(expense.amount.toString());
+      setCategoryId(expense.category_id || "");
+      // Ensure YYYY-MM-DD format for date input
+      const dateValue = expense.expense_date
+        ? expense.expense_date.split("T")[0]
+        : new Date().toISOString().split("T")[0];
+      setExpenseDate(dateValue);
+      setIsGroupExpense(expense.is_group_expense);
+      setNotes(expense.notes || "");
+      setPaidByProfileId(expense.paid_by_profile_id || "");
+
+      if (expense.is_group_expense && expense.group_id) {
+        setSelectedGroupId(expense.group_id);
+
+        // Detect split type from split_details
+        if (expense.split_details && Array.isArray(expense.split_details.participants)) {
+          if (expense.split_details.type === "percentage") {
+            setSplitType("percentage");
+
+            // Set percentage splits
+            const splits: Record<string, number> = {};
+            expense.split_details.participants.forEach(
+              (p: SplitParticipant) => {
+                if (expense.amount > 0) {
+                  const percentage = (p.amount / expense.amount) * 100;
+                  splits[p.profile_id] = Math.round(percentage * 100) / 100;
+                }
+              }
+            );
+            setPercentageSplits(splits);
+          } else {
+            setSplitType("equal");
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error loading expense for edit:", err);
+      setError("Failed to load expense data");
+    } finally {
+      setLoadingExpense(false);
+    }
+  };
 
   const handlePercentageChange = (profileId: string, percentage: number) => {
     setPercentageSplits((prev) => ({
@@ -138,7 +209,10 @@ export default function AddExpenseTab() {
       return expensesUtils.createEqualSplit(amountNumber, involvedProfileIds);
     } else {
       // Percentage split
-      return expensesUtils.createPercentageSplit(amountNumber, percentageSplits);
+      return expensesUtils.createPercentageSplit(
+        amountNumber,
+        percentageSplits
+      );
     }
   };
 
@@ -240,10 +314,20 @@ export default function AddExpenseTab() {
         notes: notes.trim() || undefined,
       };
 
-      const result = await expensesUtils.createExpense(expenseData);
+      const result =
+        isEditMode && editingExpense
+          ? await expensesUtils.updateExpense({
+              id: editingExpense.id,
+              ...expenseData,
+            })
+          : await expensesUtils.createExpense(expenseData);
 
       if (result) {
-        setSuccess("Expense added successfully!");
+        setSuccess(
+          isEditMode
+            ? "Expense updated successfully!"
+            : "Expense added successfully!"
+        );
         // Reset form
         setDescription("");
         setAmount("");
@@ -257,10 +341,19 @@ export default function AddExpenseTab() {
         setGroupMembers([]);
         setPercentageSplits({});
 
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(""), 3000);
+        // Clear success message and navigate back after 2 seconds
+        setTimeout(() => {
+          setSuccess("");
+          if (isEditMode) {
+            navigate("/expenses");
+          }
+        }, 2000);
       } else {
-        setError("Failed to add expense. Please try again.");
+        setError(
+          isEditMode
+            ? "Failed to update expense. Please try again."
+            : "Failed to add expense. Please try again."
+        );
       }
     } catch (err) {
       console.error("Error creating expense:", err);
@@ -270,14 +363,38 @@ export default function AddExpenseTab() {
     }
   };
 
+  if (loadingExpense) {
+    return (
+      <div className="p-4 h-full flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-gray-800 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 h-full overflow-y-auto">
       <div className="max-w-md mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Add Expense</h1>
-          <p className="text-gray-600">
-            Track your spending and split with groups
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                {isEditMode ? "Edit Expense" : "Add Expense"}
+              </h1>
+              <p className="text-gray-600">
+                {isEditMode
+                  ? "Update your expense details"
+                  : "Track your spending and split with groups"}
+              </p>
+            </div>
+            {isEditMode && (
+              <button
+                onClick={() => navigate("/expenses")}
+                className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-gray-800 hover:bg-opacity-30 transition-colors"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -314,24 +431,18 @@ export default function AddExpenseTab() {
             disabled={loading}
           />
 
-          <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Category *
-            </label>
-            <select
-              className="w-full px-4 py-3 bg-white bg-opacity-20 backdrop-blur-sm border-1 border-black border-opacity-30 rounded-xl text-gray-800 focus:outline-none focus:ring-1 focus:ring-purple-300 focus:border-purple-300 disabled:opacity-50"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              disabled={loading}
-            >
-              <option value="">Select a category</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.icon} {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="category"
+            label="Category *"
+            placeholder="Select a category"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            disabled={loading}
+            options={categories.map((category) => ({
+              value: category.id,
+              label: `${category.icon} ${category.name}`,
+            }))}
+          />
 
           <Input
             id="date"
@@ -352,48 +463,34 @@ export default function AddExpenseTab() {
 
           {isGroupExpense && (
             <>
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-2">
-                  Select Group *
-                </label>
-                <select
-                  className="w-full px-4 py-3 bg-white bg-opacity-20 backdrop-blur-sm border-1 border-black border-opacity-30 rounded-xl text-gray-800 focus:outline-none focus:ring-1 focus:ring-purple-300 focus:border-purple-300 disabled:opacity-50"
-                  value={selectedGroupId}
-                  onChange={(e) => setSelectedGroupId(e.target.value)}
-                  disabled={loading}
-                >
-                  <option value="">Select a group</option>
-                  {userGroups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                id="group"
+                label="Select Group *"
+                placeholder="Select a group"
+                value={selectedGroupId}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                disabled={loading}
+                options={userGroups.map((group) => ({
+                  value: group.id,
+                  label: group.name,
+                }))}
+              />
 
               {groupMembers.length > 0 && (
                 <>
-                  <div>
-                    <label className="block text-gray-700 text-sm font-medium mb-2">
-                      Paid By *
-                    </label>
-                    <select
-                      className="w-full px-4 py-3 bg-white bg-opacity-20 backdrop-blur-sm border-1 border-black border-opacity-30 rounded-xl text-gray-800 focus:outline-none focus:ring-1 focus:ring-purple-300 focus:border-purple-300 disabled:opacity-50"
-                      value={paidByProfileId}
-                      onChange={(e) => setPaidByProfileId(e.target.value)}
-                      disabled={loading}
-                    >
-                      {groupMembers.map((member) => (
-                        <option
-                          key={member.profile_id}
-                          value={member.profile_id}
-                        >
-                          {member.profiles?.name || "Unknown"}
-                          {member.profile_id === user?.id ? " (You)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <Select
+                    id="paidBy"
+                    label="Paid By *"
+                    value={paidByProfileId}
+                    onChange={(e) => setPaidByProfileId(e.target.value)}
+                    disabled={loading}
+                    options={groupMembers.map((member) => ({
+                      value: member.profile_id,
+                      label: `${member.profiles?.name || "Unknown"}${
+                        member.profile_id === user?.id ? " (You)" : ""
+                      }`,
+                    }))}
+                  />
 
                   <div>
                     <label className="block text-gray-700 text-sm font-medium mb-2">
@@ -490,18 +587,22 @@ export default function AddExpenseTab() {
                       <div className="space-y-2">
                         {(() => {
                           const amountNumber = parseFloat(amount);
-                          const splitDetails = calculateSplitDetails(amountNumber);
+                          const splitDetails =
+                            calculateSplitDetails(amountNumber);
                           const owedAmounts = calculateOwedAmounts();
 
                           if (!splitDetails?.participants) return null;
 
                           return groupMembers.map((member) => {
                             const participant = splitDetails.participants.find(
-                              (p: SplitParticipant) => p.profile_id === member.profile_id
+                              (p: SplitParticipant) =>
+                                p.profile_id === member.profile_id
                             );
                             const memberAmount = participant?.amount || 0;
-                            const owedAmount = owedAmounts[member.profile_id] || 0;
-                            const isPayer = member.profile_id === paidByProfileId;
+                            const owedAmount =
+                              owedAmounts[member.profile_id] || 0;
+                            const isPayer =
+                              member.profile_id === paidByProfileId;
 
                             return (
                               <div
@@ -510,7 +611,9 @@ export default function AddExpenseTab() {
                               >
                                 <span className="text-gray-700">
                                   {member.profiles?.name || "Unknown"}
-                                  {member.profile_id === user?.id ? " (You)" : ""}
+                                  {member.profile_id === user?.id
+                                    ? " (You)"
+                                    : ""}
                                   {isPayer ? " 💳" : ""}
                                 </span>
                                 <div className="text-right">
@@ -544,8 +647,12 @@ export default function AddExpenseTab() {
             disabled={loading}
           />
 
-          <Button type="submit" loading={loading} className="w-full">
-            Add Expense
+          <Button
+            type="submit"
+            loading={loading || loadingExpense}
+            className="w-full"
+          >
+            {isEditMode ? "Update Expense" : "Add Expense"}
           </Button>
         </form>
       </div>

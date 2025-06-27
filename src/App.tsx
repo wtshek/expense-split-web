@@ -28,7 +28,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Navigate to="/expenses" replace />} />
           <Route path="/expenses" element={<ExpenseTab />} />
-          <Route path="/add-expense" element={<AddExpenseTab />} />
+          <Route path="/add-expense/:id?" element={<AddExpenseTab />} />
           <Route path="/stats" element={<StatsTab />} />
         </Routes>
       </div>
