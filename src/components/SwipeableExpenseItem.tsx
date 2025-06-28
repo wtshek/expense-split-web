@@ -1,6 +1,6 @@
 import { useState, useRef, TouchEvent, useEffect } from "react";
 import type { ExpenseWithDetails } from "../types/database";
-import { categoriesUtils } from "../utils";
+import { categoriesUtils, formatDateShort } from "../utils";
 
 interface SwipeableExpenseItemProps {
   expense: ExpenseWithDetails;
@@ -43,12 +43,6 @@ export default function SwipeableExpenseItem({
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   const getCategoryDisplay = () => {
     if (expense.category) {
@@ -162,7 +156,7 @@ export default function SwipeableExpenseItem({
               {formatAmount(expense.amount)}
             </p>
             <div className="text-gray-600 text-xs space-y-1">
-              <div>{formatDate(expense.expense_date)}</div>
+              <div>{formatDateShort(expense.expense_date)}</div>
               <div>
                 {expense.paid_by && (
                   <span>Paid by {expense.paid_by.name || "Unknown"}</span>

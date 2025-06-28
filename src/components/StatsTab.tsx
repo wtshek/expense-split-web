@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import type { Category, ExpenseWithDetails, SplitDetails, LegacySplitDetails, SplitParticipant } from "../types/database";
-import { categoriesUtils, expensesUtils, groupsUtils } from "../utils";
+import { categoriesUtils, expensesUtils, groupsUtils, formatMonth } from "../utils";
 
 interface CategoryStats {
   category: Category;
@@ -343,12 +343,6 @@ export default function StatsTab() {
     }).format(amount);
   };
 
-  const formatMonth = (monthStr: string) => {
-    return new Date(monthStr + "-01").toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    });
-  };
 
   const getCategoryColor = (index: number) => {
     const colors = [

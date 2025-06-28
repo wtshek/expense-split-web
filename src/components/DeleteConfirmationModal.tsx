@@ -1,6 +1,7 @@
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
 import type { ExpenseWithDetails } from "../types/database";
+import { formatDateFull } from "../utils";
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -53,7 +54,7 @@ export function DeleteConfirmationModal({
             <div className="flex justify-between">
               <span className="text-gray-600">Date:</span>
               <span className="text-gray-800 font-medium">
-                {new Date(expense.expense_date).toLocaleDateString()}
+                {formatDateFull(expense.expense_date)}
               </span>
             </div>
             {expense.is_group_expense && expense.group && (
