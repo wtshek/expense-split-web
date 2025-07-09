@@ -300,10 +300,11 @@ export default function StatsTab() {
 
       // Get month range
       const startDate = `${selectedMonth}-01`;
-      const endDate = new Date(selectedMonth + "-01");
-      endDate.setMonth(endDate.getMonth() + 1);
-      endDate.setDate(0); // Last day of month
-      const endDateStr = endDate.toISOString().split("T")[0];
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const endDate = new Date(year, month, 0); // Last day of selected month
+      const endDateStr = endDate.getFullYear() + '-' + 
+        String(endDate.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(endDate.getDate()).padStart(2, '0');
 
       // Fetch expenses for the month
       const expenses = await expensesUtils.getExpensesByDateRange(
