@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { expensesUtils, formatMonth } from "../utils";
+import { expensesUtils, formatMonth, getMonthRange } from "../utils";
 import ExpenseList from "./ExpenseList";
 import { MonthPicker } from "./ui/MonthPicker";
 
@@ -14,17 +14,12 @@ export default function ExpenseTab() {
   const loadUserStats = useCallback(async () => {
     try {
       // Get month range
-      const startDate = `${selectedMonth}-01`;
-      const [year, month] = selectedMonth.split('-').map(Number);
-      const endDate = new Date(year, month, 0); // Last day of selected month
-      const endDateStr = endDate.getFullYear() + '-' + 
-        String(endDate.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(endDate.getDate()).padStart(2, '0');
+      const { startDate, endDate } = getMonthRange(selectedMonth);
 
       // Fetch expenses for the month to calculate total
       const expenses = await expensesUtils.getExpensesByDateRange(
         startDate,
-        endDateStr
+        endDate
       );
 
       const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);

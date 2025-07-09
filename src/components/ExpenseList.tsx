@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ExpenseWithDetails } from "../types/database";
-import { expensesUtils } from "../utils";
+import { expensesUtils, getMonthRange } from "../utils";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import SwipeableExpenseItem from "./SwipeableExpenseItem";
 
@@ -27,16 +27,11 @@ export default function ExpenseList({ selectedMonth }: ExpenseListProps) {
 
       if (selectedMonth) {
         // Get month range
-        const startDate = `${selectedMonth}-01`;
-        const [year, month] = selectedMonth.split('-').map(Number);
-        const endDate = new Date(year, month, 0); // Last day of selected month
-        const endDateStr = endDate.getFullYear() + '-' + 
-          String(endDate.getMonth() + 1).padStart(2, '0') + '-' + 
-          String(endDate.getDate()).padStart(2, '0');
+        const { startDate, endDate } = getMonthRange(selectedMonth);
 
         data = await expensesUtils.getExpensesByDateRange(
           startDate,
-          endDateStr
+          endDate
         );
       } else {
         data = await expensesUtils.getUserExpenses(50); // Get last 50 expenses

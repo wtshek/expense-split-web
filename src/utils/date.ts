@@ -53,3 +53,27 @@ export function formatMonth(monthString: string): string {
     year: "numeric",
   });
 }
+
+/**
+ * Get the start and end dates for a given month in YYYY-MM format
+ * Handles timezone issues by using explicit date construction
+ * 
+ * @param monthString - Month string in format YYYY-MM
+ * @returns Object with startDate and endDate as YYYY-MM-DD strings
+ */
+export function getMonthRange(monthString: string): { startDate: string; endDate: string } {
+  const [year, month] = monthString.split('-').map(Number);
+  
+  // Start date is always the 1st of the month
+  const startDate = `${monthString}-01`;
+  
+  // End date is the last day of the month
+  // Using new Date(year, month, 0) gets the last day of the previous month
+  // Since month is 1-indexed in our input but 0-indexed in Date constructor
+  const endDate = new Date(year, month, 0);
+  const endDateStr = endDate.getFullYear() + '-' + 
+    String(endDate.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(endDate.getDate()).padStart(2, '0');
+  
+  return { startDate, endDate: endDateStr };
+}

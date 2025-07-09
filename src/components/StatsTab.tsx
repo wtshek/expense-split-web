@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import type { Category, ExpenseWithDetails, SplitDetails, LegacySplitDetails, SplitParticipant } from "../types/database";
-import { categoriesUtils, expensesUtils, groupsUtils, formatMonth } from "../utils";
+import { categoriesUtils, expensesUtils, groupsUtils, formatMonth, getMonthRange } from "../utils";
 
 interface CategoryStats {
   category: Category;
@@ -299,17 +299,12 @@ export default function StatsTab() {
       setLoading(true);
 
       // Get month range
-      const startDate = `${selectedMonth}-01`;
-      const [year, month] = selectedMonth.split('-').map(Number);
-      const endDate = new Date(year, month, 0); // Last day of selected month
-      const endDateStr = endDate.getFullYear() + '-' + 
-        String(endDate.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(endDate.getDate()).padStart(2, '0');
+      const { startDate, endDate } = getMonthRange(selectedMonth);
 
       // Fetch expenses for the month
       const expenses = await expensesUtils.getExpensesByDateRange(
         startDate,
-        endDateStr
+        endDate
       );
 
       // Calculate category stats

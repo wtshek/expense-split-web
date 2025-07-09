@@ -263,9 +263,6 @@ export const expensesUtils = {
     } = await supabase.auth.getUser();
     if (!user) return [];
 
-    console.log("startDate", startDate);
-    console.log("endDate", endDate);
-
     const { data, error } = await supabase
       .from("expenses")
       .select(
